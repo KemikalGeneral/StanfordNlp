@@ -114,9 +114,9 @@ public class SeedcornSentimentAnalysis {
 
     public static void main(String[] args) {
 
-        String[] allReviews = new String[]{"1", "Review 1", "2", "Review 2", "3", "Review 3"};
+//        String[] allReviews = new String[]{"1", "Review 1", "2", "Review 2", "3", "Review 3"};
 
-        findSentiment(allReviews);
+        findSentiment(args);
 
         // set up pipeline properties
 //        Properties props = new Properties();
