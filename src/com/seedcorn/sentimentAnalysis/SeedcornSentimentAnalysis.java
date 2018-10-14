@@ -8,6 +8,7 @@ import edu.stanford.nlp.sentiment.SentimentCoreAnnotations;
 import edu.stanford.nlp.trees.Tree;
 import edu.stanford.nlp.util.CoreMap;
 
+import java.util.ArrayList;
 import java.util.Properties;
 
 /**
@@ -18,7 +19,44 @@ import java.util.Properties;
  */
 public class SeedcornSentimentAnalysis {
 
-    private static double findSentiment(String review) {
+    private static double findSentiment(String[] allReviews) {
+        // Set to TRUE to display the breakdown of the output to the console
+        boolean devMode = true;
+
+        allReviews = new String[] {"1", "Review 1", "2", "Review 2", "3", "Review 3"};
+
+        int counter = -1;
+        int loopCounter = 0;
+        Object[] returnedArray = new Object[allReviews.length/2];
+        ArrayList<String> review = null;
+        for (String string : allReviews) {
+            counter++;
+            loopCounter++;
+
+            if (loopCounter == 1) {
+                review = new ArrayList<>();
+                review.add(string);
+            } else if (loopCounter == 2) {
+                review.add(string);
+                returnedArray[counter/2] = review;
+                loopCounter = 0;
+            } else {}
+        }
+
+        if (devMode) {
+            System.out.println("" +
+                    "\n==============================================================================================================\n" +
+                    "The output shows the sentiment analysis for the comment provided.\n" +
+                    "The StanfordCoreNlp algorithm breaks apart the input and rates each section numerically as follows:\n" +
+                    "\n" +
+                    "\t1 = Negative\n" +
+                    "\t2 = Neutral\n" +
+                    "\t3 = Positive\n" +
+                    "\n" +
+                    "The returned value is the average of all the sentiment ratings for the provided comment.\n" +
+                    "==============================================================================================================\n"
+            );
+        }
         Properties props = new Properties();
         props.setProperty("annotators", "tokenize, ssplit, parse, sentiment");
         StanfordCoreNLP pipeline = new StanfordCoreNLP(props);
@@ -26,49 +64,35 @@ public class SeedcornSentimentAnalysis {
         double totalSentimentScore = 0;
         double numberOfSentences = 0;
         double averageSentimentScore;
-        int counter = 1;
+        String reviewText = "";
 
-        // Set to TRUE to display the breakdown of the output to the console
-        boolean devMode = true;
+//        for () {
 
-        if (review != null && review.length() > 0) {
-            Annotation annotation = pipeline.process(review);
+            if (reviewText != null && reviewText.length() > 0) {
+                Annotation annotation = pipeline.process(reviewText);
 
-            if (devMode) {
-                System.out.println("" +
-                        "\n==============================================================================================================\n" +
-                        "The output shows the sentiment analysis for the comment provided.\n" +
-                        "The StanfordCoreNlp algorithm breaks apart the input and rates each section numerically as follows:\n" +
-                        "\n" +
-                        "\t1 = Negative\n" +
-                        "\t2 = Neutral\n" +
-                        "\t3 = Positive\n" +
-                        "\n" +
-                        "The returned value is the average of all the sentiment ratings for the provided comment.\n" +
-                        "==============================================================================================================\n"
-                );
-            }
+                for (CoreMap sentence : annotation.get(CoreAnnotations.SentencesAnnotation.class)) {
+                    Tree tree = sentence.get(SentimentCoreAnnotations.SentimentAnnotatedTree.class);
 
-            for (CoreMap sentence : annotation.get(CoreAnnotations.SentencesAnnotation.class)) {
-                Tree tree = sentence.get(SentimentCoreAnnotations.SentimentAnnotatedTree.class);
+                    int sentimentSectionScore = RNNCoreAnnotations.getPredictedClass(tree);
 
-                int sentimentSectionScore = RNNCoreAnnotations.getPredictedClass(tree);
+                    numberOfSentences++;
+                    totalSentimentScore += sentimentSectionScore;
 
-                numberOfSentences++;
-                totalSentimentScore += sentimentSectionScore;
-
-                if (devMode) {
-                    System.out.println("\nSentence " + counter++ + ": " + sentence);
-                    System.out.println("Sentiment score: " + sentimentSectionScore);
-                    System.out.println("Total sentiment score: " + totalSentimentScore);
+                    if (devMode) {
+                        System.out.println("\nSentence " + counter++ + ": " + sentence);
+                        System.out.println("Sentiment score: " + sentimentSectionScore);
+                        System.out.println("Total sentiment score: " + totalSentimentScore);
+                    }
                 }
             }
-        }
+//        }
         averageSentimentScore = totalSentimentScore / numberOfSentences;
 
         if (devMode) {
             System.out.println("\nFinal sentiment score: " + averageSentimentScore + " / 3");
         }
+
         System.out.println(averageSentimentScore);
 
         return averageSentimentScore;
@@ -76,9 +100,9 @@ public class SeedcornSentimentAnalysis {
 
     public static void main(String[] args) {
 
-        System.out.println("args: " + args.length);
+        String[] allReviews = new String[] {"1", "Review 1", "!#deliminator#!", "2", "Review 2", "!#deliminator#!", "3", "Review 3", "!#deliminator#!"};
 
-        findSentiment(args[0]);
+        findSentiment(allReviews);
 
         // set up pipeline properties
 //        Properties props = new Properties();
