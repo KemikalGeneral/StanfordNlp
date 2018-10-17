@@ -4,11 +4,11 @@ package com.seedcorn.sentimentAnalysis;
  * SeedCorn Android review sentiment analyser, using the Stanford Core NLP library.
  *
  * @author Richard Denton
- * <p>
- * The SeedcornSentimentAnalysis class is designed to be compiled into a JAR file and used with the accompanying
+ *
+ * This SeedcornSentimentAnalysis class is designed to be compiled into a JAR file and used with the accompanying
  * ReactJS/Node.js application.
  * It is passed a single string through the main 'String[] args' as a string of reviewId's, reviewText, and a custom
- * delimiter to separate each element through the string.
+ * delimiter to separate each element throughout the string.
  * The string is processed and creates an 'ArrayList<String> review' for each new review with the review ID, and runs the
  * review text through the sentiment analyser.
  * Where necessary, the analysis breaks the reviewText into shorter sentences, assigns a score, and adds both values
@@ -140,7 +140,7 @@ public class SeedcornSentimentAnalysis {
                 "2!#delimiter#!" +
                 "I'm also a test review. Made up of sentences.!#delimiter#!";
 
-        findSentiment(mockReviews);
+        findSentiment(args[0]);
 
         // set up pipeline properties
 //        Properties props = new Properties();
