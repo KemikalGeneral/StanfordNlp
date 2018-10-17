@@ -9,20 +9,19 @@ import edu.stanford.nlp.trees.Tree;
 import edu.stanford.nlp.util.CoreMap;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Properties;
 
 /**
- * This class takes an array of reviewId's and reviewText (consecutively) through the main args
+ * This class takes a string of reviewId's, reviewText, and a custom delimiter (consecutively) through the main args
  * and runs it through the sentiment analyser.
  * Where necessary, the analysis breaks the reviewText into shorter sentences and scores each one.
- * An multidimensional array is returned consisting of an array (all reviews) of arrays (single review).
- * Each single review is made up of the id first, then a sentence and score as many times as is returned from the anlaysis.
+ * An multidimensional array is returned consisting of an ArrayList (all reviews) of ArrayList<String> (single review).
+ * Each single review is made up of the id first, then a sentence and score as many times as is returned from the analysis.
  * If devMode is set to TRUE, the detailed output is displayed in the console.
  */
 public class SeedcornSentimentAnalysis {
 
-    private static Object[] findSentiment(String[] allReviews) {
+    private static ArrayList<ArrayList<String>> findSentiment(String allReviews) {
         // Set to TRUE to display the breakdown of the output to the console
         boolean devMode = false;
 
@@ -41,62 +40,67 @@ public class SeedcornSentimentAnalysis {
             );
         }
 
-        Object[] arrayToReturn = new Object[allReviews.length / 2];
-        ArrayList<String> review = null;
         double totalSentimentScore = 0;
         double numberOfSentences = 0;
         double averageSentimentScore;
-        int counter = -1;
-        int loopCounter = 0;
+        int counter = 1;
 
         //Setup Stanford Core NLP library
         Properties props = new Properties();
         props.setProperty("annotators", "tokenize, ssplit, parse, sentiment");
         StanfordCoreNLP pipeline = new StanfordCoreNLP(props);
 
-        // Loop through the incoming 'allReviews' array.
-        // If the loop counter value is odd:
-        // - create a reviews ArrayList and add the string (this will be the review Id).
-        // If the loop counter value is even:
-        // - run the sentiment analysis on the current string,
-        // - add the results to the review array,
-        // - when the analysis has finished, add the review array to the arrayToReturn.
-        for (String reviewText : allReviews) {
-            loopCounter++;
+        if (devMode) {
+            System.out.println("Incoming String of allReviews: " + allReviews);
+        }
 
-            if (loopCounter == 1) {
-                review = new ArrayList<>();
-                review.add(reviewText);
-            } else if (loopCounter == 2) {
-                counter++;
-                loopCounter = 0;
+        // Create an ArrayList to add all of the processed reviews to.
+        // Split the allReviews string by the delimiter and store in an array (splitReviews).
+        // Loop through the splitReviews adding the first element
+        ArrayList<ArrayList<String>> reviewsToReturn = new ArrayList<>();
+        String[] splitReviews = allReviews.split("!#delimiter#!");
+        String reviewText = "";
+        for (int i = 0; i < splitReviews.length; i++) {
 
-                if (reviewText != null && reviewText.length() > 0) {
-                    Annotation annotation = pipeline.process(reviewText);
+            if (devMode) {
+                System.out.println("\n===== ===== ===== Main loop ===== ===== =====");
+                System.out.println("Split string to process: " + splitReviews[i]);
+            }
 
-                    // Analyse the review, and for each sentence found, run the sentiment analysis.
-                    // Add the sentence to the review array.
-                    for (CoreMap sentence : annotation.get(CoreAnnotations.SentencesAnnotation.class)) {
-                        Tree tree = sentence.get(SentimentCoreAnnotations.SentimentAnnotatedTree.class);
-                        int sentenceSentimentScore = RNNCoreAnnotations.getPredictedClass(tree);
+            ArrayList<String> review = new ArrayList<>();
+            review.add(splitReviews[i].substring(0, 1));
+            reviewText = splitReviews[i].substring(1);
 
-                        // Increment numberOfSentences, and sum totalSentimentScore,
-                        // to calculate the review's average score.
-                        numberOfSentences++;
-                        totalSentimentScore += sentenceSentimentScore;
+            if (reviewText != null && reviewText.length() > 0) {
+                Annotation annotation = pipeline.process(reviewText);
 
-                        // Add the review sentence and assigned score to the current review array.
-                        review.add(sentence.toString());
-                        review.add(String.valueOf(sentenceSentimentScore));
-
-                        if (devMode) {
-                            System.out.println("\nSentence " + counter + ": " + sentence);
-                            System.out.println("Sentiment score: " + sentenceSentimentScore);
-                            System.out.println("Total sentiment score: " + totalSentimentScore);
-                        }
+                // Analyse the review, and for each sentence found, run the sentiment analysis.
+                // Add the sentence to the review array.
+                for (CoreMap sentence : annotation.get(CoreAnnotations.SentencesAnnotation.class)) {
+                    if (devMode) {
+                        System.out.println("\n===== Analysis loop =====");
                     }
-                    arrayToReturn[counter] = review;
+
+                    Tree tree = sentence.get(SentimentCoreAnnotations.SentimentAnnotatedTree.class);
+                    int sentenceSentimentScore = RNNCoreAnnotations.getPredictedClass(tree);
+
+                    // Increment numberOfSentences, and sum totalSentimentScore,
+                    // to calculate the review's average score.
+                    numberOfSentences++;
+                    totalSentimentScore += sentenceSentimentScore;
+
+                    // Add the review sentence and assigned score to the current review array.
+                    review.add(sentence.toString());
+                    review.add(String.valueOf(sentenceSentimentScore));
+
+                    if (devMode) {
+                        System.out.println("\nSentence " + counter++ + ": " + sentence);
+                        System.out.println("Sentiment score: " + sentenceSentimentScore);
+                        System.out.println("Total sentiment score: " + totalSentimentScore);
+                    }
                 }
+
+                reviewsToReturn.add(review);
             }
         }
 
@@ -108,15 +112,15 @@ public class SeedcornSentimentAnalysis {
         }
 
         // The results to return must be printed to the console so they can be caught with a Node child process.
-        System.out.println(Arrays.toString(arrayToReturn));
-        return arrayToReturn;
+        System.out.println(reviewsToReturn);
+        return reviewsToReturn;
     }
 
     public static void main(String[] args) {
 
-//        String[] allReviews = new String[]{"1", "Review 1", "2", "Review 2", "3", "Review 3"};
+        String mockReviews = "1I like reviews. They're really cool!#delimiter#!2Review2!#delimiter#!";
 
-        findSentiment(args);
+        findSentiment(mockReviews);
 
         // set up pipeline properties
 //        Properties props = new Properties();
