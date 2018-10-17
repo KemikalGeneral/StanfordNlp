@@ -7,14 +7,19 @@ package com.seedcorn.sentimentAnalysis;
  *
  * This SeedcornSentimentAnalysis class is designed to be compiled into a JAR file and used with the accompanying
  * ReactJS/Node.js application.
- * It is passed a single string through the main 'String[] args' as a string of reviewId's, reviewText, and a custom
+ * It is passed a single string through the main 'String[] args' containing the review Id's, review text, and a custom
  * delimiter to separate each element throughout the string.
- * The string is processed and creates an 'ArrayList<String> review' for each new review with the review ID, and runs the
- * review text through the sentiment analyser.
- * Where necessary, the analysis breaks the reviewText into shorter sentences, assigns a score, and adds both values
- * to the review array.
- * An multidimensional array is returned consisting of an ArrayList (all reviews) of ArrayList<String> (single review).
- * Each single review is made up of the id first, then a sentence and score as many times as is returned from the analysis.
+ * The string is split and creates a 'String[] splitReviews' for each new review adding the review ID and review text.
+ * The splitReview array is iterated through adding the review ID to 'String reviewsToReturn' and passes the reviewText
+ * through for analysis.
+ * Where necessary, the analyser breaks the reviewText into shorter sentences, assigns a score, and adds both values
+ * to the reviewsToReturn string.
+ *
+ * @Return
+ * The reviewsToReturn string containing all the reviews is returned.
+ * Each review is made up in the following format:
+ * id 'delimiter' sentence 'delimiter' score 'delimiter' 'reviewDelimiter'
+ * The sentence and score sections can repeat as many times as is returned from the analysis.
  */
 
 import edu.stanford.nlp.ling.CoreAnnotations;
@@ -25,11 +30,10 @@ import edu.stanford.nlp.sentiment.SentimentCoreAnnotations;
 import edu.stanford.nlp.trees.Tree;
 import edu.stanford.nlp.util.CoreMap;
 
-import java.util.ArrayList;
 import java.util.Properties;
 
 public class SeedcornSentimentAnalysis {
-    private static ArrayList<ArrayList<String>> findSentiment(String allReviews) {
+    private static String findSentiment(String allReviews) {
         // If devMode is set to TRUE, the detailed output of analysis is displayed in the console.
         boolean devMode = false;
 
@@ -62,26 +66,27 @@ public class SeedcornSentimentAnalysis {
         props.setProperty("annotators", "tokenize, ssplit, parse, sentiment");
         StanfordCoreNLP pipeline = new StanfordCoreNLP(props);
 
-        // Create an ArrayList to add all of the processed reviews to.
+        // Create a reviewsToReturn string to add all of the review ID's, processed reviews, and scores to.
         // Split the allReviews string by the delimiter and store in an array (splitReviews).
-        // Loop through the splitReviews and process by index:
-        // - - evens -> create a new review ArrayList and add the current splitReview as the review id
-        // - - odds -> pass for analysing and add to existing review ArrayList as sentences, along with the score
-        ArrayList<ArrayList<String>> reviewsToReturn = new ArrayList<>();
-        String[] splitReviews = allReviews.split("!#delimiter#!");
-        String reviewText = "";
-        ArrayList<String> review = null;
+        // Iterate through the splitReviews and process by index:
+        // - - evens -> add the current splitReview as the review id.
+        // - - odds -> pass reviewText for analysing and add to reviewsToReturn as sentences, along with their scores.
+        String delimiter = "!#delimiter#!";
+        String reviewDelimiter = "!#reviewDelimiter#!";
+        String reviewsToReturn = "";
+        String[] splitReviews = allReviews.split(delimiter);
+        String reviewText;
         for (int i = 0; i < splitReviews.length; i++) {
             if (devMode) {
                 System.out.println("\n===== ===== ===== Main loop ===== ===== =====");
                 System.out.println("Split string to process: " + splitReviews[i]);
             }
 
-            // If even -> create a new review ArrayList and add the current splitReview as the review id.
-            // If odd -> pass for analysing and add to existing review ArrayList as sentences, along with the score.
+            // If even -> add the current splitReview as the review id.
+            // If odd -> pass reviewText for analysing and add to reviewsToReturn as sentences, along with their scores.
             if ((i & 1) == 0) {
-                review = new ArrayList<>();
-                review.add(splitReviews[i].substring(0, 1));
+                reviewsToReturn += splitReviews[i];
+                reviewsToReturn += delimiter;
             } else {
 
                 reviewText = splitReviews[i];
@@ -90,7 +95,7 @@ public class SeedcornSentimentAnalysis {
                     Annotation annotation = pipeline.process(reviewText);
 
                     // Analyse the review, and for each sentence found, run the sentiment analysis.
-                    // Add the sentence and score to the review array.
+                    // Add the sentence and score to the reviewsToReturn string.
                     for (CoreMap sentence : annotation.get(CoreAnnotations.SentencesAnnotation.class)) {
                         if (devMode) {
                             System.out.println("\n===== Analysis loop =====");
@@ -104,9 +109,12 @@ public class SeedcornSentimentAnalysis {
                         numberOfSentences++;
                         totalSentimentScore += sentenceSentimentScore;
 
-                        // Add review sentence and score to current review.
-                        review.add(sentence.toString());
-                        review.add(String.valueOf(sentenceSentimentScore));
+                        // Add review sentence and score to reviewsToReturn string.
+                        reviewsToReturn += sentence.toString();
+                        reviewsToReturn += delimiter;
+                        reviewsToReturn += String.valueOf(sentenceSentimentScore);
+                        reviewsToReturn += delimiter;
+
 
                         if (devMode) {
                             System.out.println("\nSentence " + counter++ + ": " + sentence);
@@ -115,7 +123,7 @@ public class SeedcornSentimentAnalysis {
                         }
                     }
 
-                    reviewsToReturn.add(review);
+                    reviewsToReturn += reviewDelimiter;
                 }
             }
         }
@@ -136,9 +144,9 @@ public class SeedcornSentimentAnalysis {
 
         String mockReviews = "" +
                 "1!#delimiter#!" +
-                "I'm a test review.!#delimiter#!" +
+                "I'm a good test review.!#delimiter#!" +
                 "2!#delimiter#!" +
-                "I'm also a test review. Made up of sentences.!#delimiter#!";
+                "I'm a bad test review. Made up of sentences.!#delimiter#!";
 
         findSentiment(args[0]);
 
