@@ -1,5 +1,22 @@
 package com.seedcorn.sentimentAnalysis;
 
+/**
+ * SeedCorn Android review sentiment analyser, using the Stanford Core NLP library.
+ *
+ * @author Richard Denton
+ * <p>
+ * The SeedcornSentimentAnalysis class is designed to be compiled into a JAR file and used with the accompanying
+ * ReactJS/Node.js application.
+ * It is passed a single string through the main 'String[] args' as a string of reviewId's, reviewText, and a custom
+ * delimiter to separate each element through the string.
+ * The string is processed and creates an 'ArrayList<String> review' for each new review with the review ID, and runs the
+ * review text through the sentiment analyser.
+ * Where necessary, the analysis breaks the reviewText into shorter sentences, assigns a score, and adds both values
+ * to the review array.
+ * An multidimensional array is returned consisting of an ArrayList (all reviews) of ArrayList<String> (single review).
+ * Each single review is made up of the id first, then a sentence and score as many times as is returned from the analysis.
+ */
+
 import edu.stanford.nlp.ling.CoreAnnotations;
 import edu.stanford.nlp.neural.rnn.RNNCoreAnnotations;
 import edu.stanford.nlp.pipeline.Annotation;
@@ -11,19 +28,10 @@ import edu.stanford.nlp.util.CoreMap;
 import java.util.ArrayList;
 import java.util.Properties;
 
-/**
- * This class takes a string of reviewId's, reviewText, and a custom delimiter to separate each element through the
- * main args and runs it through the sentiment analyser.
- * Where necessary, the analysis breaks the reviewText into shorter sentences and scores each one.
- * An multidimensional array is returned consisting of an ArrayList (all reviews) of ArrayList<String> (single review).
- * Each single review is made up of the id first, then a sentence and score as many times as is returned from the analysis.
- * If devMode is set to TRUE, the detailed output is displayed in the console.
- */
 public class SeedcornSentimentAnalysis {
-
     private static ArrayList<ArrayList<String>> findSentiment(String allReviews) {
-        // Set to TRUE to display the breakdown of the output to the console
-        boolean devMode = true;
+        // If devMode is set to TRUE, the detailed output of analysis is displayed in the console.
+        boolean devMode = false;
 
         if (devMode) {
             System.out.println("" +
@@ -126,7 +134,11 @@ public class SeedcornSentimentAnalysis {
 
     public static void main(String[] args) {
 
-        String mockReviews = "1!#delimiter#!I like reviews! They're really cool!#delimiter#!2!#delimiter#!Review2!#delimiter#!";
+        String mockReviews = "" +
+                "1!#delimiter#!" +
+                "I'm a test review.!#delimiter#!" +
+                "2!#delimiter#!" +
+                "I'm also a test review. Made up of sentences.!#delimiter#!";
 
         findSentiment(mockReviews);
 
