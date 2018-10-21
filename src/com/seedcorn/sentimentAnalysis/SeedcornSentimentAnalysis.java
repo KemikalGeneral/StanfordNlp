@@ -4,21 +4,21 @@ package com.seedcorn.sentimentAnalysis;
  * SeedCorn Android review sentiment analyser, using the Stanford Core NLP library.
  *
  * @author Richard Denton
- *
+ * <p>
  * This SeedcornSentimentAnalysis class is designed to be compiled into a JAR file and used with the accompanying
  * ReactJS/Node.js application.
- * It is passed a single string through the main 'String[] args' containing the review Id's, review text, and a custom
- * delimiter to separate each element throughout the string.
- * The string is split and creates a 'String[] splitReviews' for each new review adding the review ID and review text.
- * The splitReview array is iterated through adding the review ID to 'String reviewsToReturn' and passes the reviewText
- * through for analysis.
+ * It is passed a single string through the main 'String[] args' containing the review ID, review text, and two custom
+ * delimiters:
+ * - - 'delimiter': to separate each element throughout the string,
+ * - - 'reviewDelimiter': to separate each review.
+ * The string is split and creates a 'String[] splitReviews' for each new review adding the review ID and average
+ * sentiment score to the 'String reviewsToReturn'.
  * Where necessary, the analyser breaks the reviewText into shorter sentences, assigns a score, and adds both values
- * to the reviewsToReturn string.
- *
- * @Return
- * The reviewsToReturn string containing all the reviews is returned.
+ * to the 'String review', (as many times as is needed for the amount of sentences found), which is then also added to
+ * the 'reviewsToReturn' string.
+ * @Return The 'reviewsToReturn' string containing all the reviews is returned.
  * Each review is made up in the following format:
- * id 'delimiter' sentence 'delimiter' score 'delimiter' 'reviewDelimiter'
+ * id 'delimiter' averageSentimentScore 'delimiter' sentence 'delimiter' score 'delimiter' 'reviewDelimiter'
  * The sentence and score sections can repeat as many times as is returned from the analysis.
  */
 
@@ -56,9 +56,9 @@ public class SeedcornSentimentAnalysis {
             System.out.println("Incoming String of allReviews: " + allReviews);
         }
 
-        double totalSentimentScore = 0;
-        double numberOfSentences = 0;
-        double averageSentimentScore;
+        double totalSentimentScore = 0.0;
+        double numberOfSentences = 0.0;
+        double averageSentimentScore = 0.0;
         int counter = 1;
 
         //Setup Stanford Core NLP library
@@ -66,7 +66,7 @@ public class SeedcornSentimentAnalysis {
         props.setProperty("annotators", "tokenize, ssplit, parse, sentiment");
         StanfordCoreNLP pipeline = new StanfordCoreNLP(props);
 
-        // Create a reviewsToReturn string to add all of the review ID's, processed reviews, and scores to.
+        // Create a reviewsToReturn string to add the review ID's, average scores, processed reviews, and scores to.
         // Split the allReviews string by the delimiter and store in an array (splitReviews).
         // Iterate through the splitReviews and process by index:
         // - - evens -> add the current splitReview as the review id.
@@ -81,6 +81,10 @@ public class SeedcornSentimentAnalysis {
                 System.out.println("\n===== ===== ===== Main loop ===== ===== =====");
                 System.out.println("Split string to process: " + splitReviews[i]);
             }
+
+            // This is for the current review sentence and score data.
+            // It needs to be added on at the end, after the ID and averageSentimentScore.
+            String review = "";
 
             // If even -> add the current splitReview as the review id.
             // If odd -> pass reviewText for analysing and add to reviewsToReturn as sentences, along with their scores.
@@ -109,11 +113,11 @@ public class SeedcornSentimentAnalysis {
                         numberOfSentences++;
                         totalSentimentScore += sentenceSentimentScore;
 
-                        // Add review sentence and score to reviewsToReturn string.
-                        reviewsToReturn += sentence.toString();
-                        reviewsToReturn += delimiter;
-                        reviewsToReturn += String.valueOf(sentenceSentimentScore);
-                        reviewsToReturn += delimiter;
+                        // Add review sentence and score to the current review string.
+                        review += sentence.toString();
+                        review += delimiter;
+                        review += String.valueOf(sentenceSentimentScore);
+                        review += delimiter;
 
 
                         if (devMode) {
@@ -123,13 +127,19 @@ public class SeedcornSentimentAnalysis {
                         }
                     }
 
+                    //Calculate the average score
+                    averageSentimentScore = totalSentimentScore / numberOfSentences;
+
+                    // Add the average score and the review data (separated by the delimiter),
+                    // to the reviewsToReturn string.
+                    reviewsToReturn += averageSentimentScore;
+                    reviewsToReturn += delimiter;
+                    reviewsToReturn += review;
+
                     reviewsToReturn += reviewDelimiter;
                 }
             }
         }
-
-        // Calculate each complete review's average sentiment score.
-        averageSentimentScore = totalSentimentScore / numberOfSentences;
 
         if (devMode) {
             System.out.println("\nFinal sentiment score: " + averageSentimentScore + " / 3");
@@ -142,7 +152,7 @@ public class SeedcornSentimentAnalysis {
 
     public static void main(String[] args) {
 
-        String mockReviews = "" +
+        String mockReviewStringForTesting = "" +
                 "1!#delimiter#!" +
                 "I'm a good test review.!#delimiter#!" +
                 "2!#delimiter#!" +
